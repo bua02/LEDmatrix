@@ -19,12 +19,15 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "spi.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "7x5font.h"
+#include <stdio.h>
+#include "stdbool.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,7 +47,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+_Bool showNextLine = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -87,15 +90,43 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
-  MX_SPI1_Init();
+  MX_SPI3_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_Base_Start_IT(&htim6);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  uint8_t spi_txbuf = 0x55;
+
   while (1)
   {
+	  for(int i = 0; i<=7; i++){
+		  if(i==0){
+			  HAL_GPIO_WritePin(Reset_GPIO_Port, Reset_Pin, GPIO_PIN_RESET);
+			  HAL_GPIO_WritePin(Reset_GPIO_Port, Reset_Pin, GPIO_PIN_SET);
+		  }
+
+		  while(HAL_SPI_GetState(&hspi3)!=HAL_SPI_STATE_READY);
+		  HAL_SPI_Transmit_IT(&hspi3, &font[105*8+i], 1);
+		  while(HAL_SPI_GetState(&hspi3)!=HAL_SPI_STATE_READY);
+		  HAL_SPI_Transmit_IT(&hspi3, &font[104*8+i], 1);
+		  HAL_GPIO_WritePin(Latch_GPIO_Port, Latch_Pin, SET);
+		  HAL_GPIO_WritePin(Latch_GPIO_Port, Latch_Pin, RESET);
+		 if(i > 0){
+				HAL_GPIO_WritePin(RClock_GPIO_Port, RClock_Pin, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(RClock_GPIO_Port, RClock_Pin, GPIO_PIN_RESET);
+		 }
+//		  while(showNextLine != true);
+//		  showNextLine = false;
+		  //HAL_Delay(50);
+	  }
+	  HAL_GPIO_WritePin(R_Reset_GPIO_Port, R_Reset_Pin, GPIO_PIN_SET);
+	  HAL_GPIO_WritePin(R_Reset_GPIO_Port, R_Reset_Pin, GPIO_PIN_RESET);
+//	  HAL_Delay(1000);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -165,6 +196,10 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+
+	showNextLine = true;
+}
 /* USER CODE END 4 */
 
 /**

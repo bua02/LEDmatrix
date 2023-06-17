@@ -57,12 +57,16 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define RClock_Pin GPIO_PIN_0
+#define RClock_GPIO_Port GPIOA
 #define VCP_TX_Pin GPIO_PIN_2
 #define VCP_TX_GPIO_Port GPIOA
 #define Latch_Pin GPIO_PIN_0
 #define Latch_GPIO_Port GPIOB
 #define R_Reset_Pin GPIO_PIN_1
 #define R_Reset_GPIO_Port GPIOB
+#define Reset_Pin GPIO_PIN_8
+#define Reset_GPIO_Port GPIOA
 #define SWDIO_Pin GPIO_PIN_13
 #define SWDIO_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14
