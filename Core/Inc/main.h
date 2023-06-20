@@ -36,7 +36,11 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+typedef struct{
+	uint8_t hundreds;
+	uint8_t tens;
+	uint8_t ones;
+}Numbers;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -53,7 +57,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+Numbers getSingleDigits(uint8_t number);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

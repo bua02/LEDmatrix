@@ -18,6 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
+#include "i2c.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -25,7 +27,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "7x5font.h"
 #include <stdio.h>
 #include "stdbool.h"
 /* USER CODE END Includes */
@@ -52,6 +53,7 @@ _Bool showNextLine = false;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -92,10 +94,19 @@ int main(void)
   MX_USART2_UART_Init();
   MX_SPI3_Init();
   MX_TIM6_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim6);
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
+  MX_FREERTOS_Init();
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
@@ -103,30 +114,6 @@ int main(void)
 
   while (1)
   {
-	  for(int i = 0; i<=7; i++){
-		  if(i==0){
-			  HAL_GPIO_WritePin(Reset_GPIO_Port, Reset_Pin, GPIO_PIN_RESET);
-			  HAL_GPIO_WritePin(Reset_GPIO_Port, Reset_Pin, GPIO_PIN_SET);
-		  }
-
-		  while(HAL_SPI_GetState(&hspi3)!=HAL_SPI_STATE_READY);
-		  HAL_SPI_Transmit_IT(&hspi3, &font[105*8+i], 1);
-		  while(HAL_SPI_GetState(&hspi3)!=HAL_SPI_STATE_READY);
-		  HAL_SPI_Transmit_IT(&hspi3, &font[104*8+i], 1);
-		  HAL_GPIO_WritePin(Latch_GPIO_Port, Latch_Pin, SET);
-		  HAL_GPIO_WritePin(Latch_GPIO_Port, Latch_Pin, RESET);
-		 if(i > 0){
-				HAL_GPIO_WritePin(RClock_GPIO_Port, RClock_Pin, GPIO_PIN_SET);
-				HAL_GPIO_WritePin(RClock_GPIO_Port, RClock_Pin, GPIO_PIN_RESET);
-		 }
-//		  while(showNextLine != true);
-//		  showNextLine = false;
-		  //HAL_Delay(50);
-	  }
-	  HAL_GPIO_WritePin(R_Reset_GPIO_Port, R_Reset_Pin, GPIO_PIN_SET);
-	  HAL_GPIO_WritePin(R_Reset_GPIO_Port, R_Reset_Pin, GPIO_PIN_RESET);
-//	  HAL_Delay(1000);
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -195,12 +182,41 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+Numbers getSingleDigits(uint8_t number){
+	Numbers singleDigits;
+	singleDigits.ones = number % 10;
+	number = number - singleDigits.ones;
+	singleDigits.tens = (number % 100)/10;
+	number = number - singleDigits.tens;
+	singleDigits.hundreds = number % 1000/100;
+	number = number - singleDigits.hundreds;
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-
-	showNextLine = true;
+	return singleDigits;
 }
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM16 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+	if(htim == &htim6){
+		showNextLine = true;
+	}
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM16) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.

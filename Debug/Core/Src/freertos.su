@@ -1,0 +1,5 @@
+../Core/Src/freertos.c:98:6:MX_FREERTOS_Init	8	static
+../Core/Src/freertos.c:154:6:StartDefaultTask	16	static
+../Core/Src/freertos.c:172:6:displayTask_App	24	static
+../Core/Src/freertos.c:216:6:i2cTask_App	24	static
+../Core/Src/freertos.c:233:6:HAL_I2C_SlaveRxCpltCallback	16	static
