@@ -46,6 +46,7 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 extern SPI_HandleTypeDef hspi3;
+uint8_t rxDone = 3;
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -180,13 +181,19 @@ void StartDefaultTask(void *argument)
 void displayTask_App(void *argument)
 {
   /* USER CODE BEGIN displayTask_App */
-	uint8_t pulse = 15;
+	uint8_t pulse = 0;
 	Numbers singleDigits;
+	osStatus_t result;
   /* Infinite loop */
   for(;;)
   {
-	  osMessageQueueGet(i2cMessageQueueHandle, &pulse, 0U, 0U);
-	  singleDigits = getSingleDigits(pulse);
+	  result = osMessageQueueGet(i2cMessageQueueHandle, &pulse, 0U, 0U);
+	  if(result == osOK){
+		  singleDigits = getSingleDigits(pulse);
+	  }else if(pulse == 0){
+		  singleDigits.tens = 87 - '0';
+		  singleDigits.ones = 8;
+	  }
 
 	  for(int i = 0; i<=7; i++){
 	  		  if(i==0){
@@ -204,9 +211,6 @@ void displayTask_App(void *argument)
 	  				HAL_GPIO_WritePin(RClock_GPIO_Port, RClock_Pin, GPIO_PIN_SET);
 	  				HAL_GPIO_WritePin(RClock_GPIO_Port, RClock_Pin, GPIO_PIN_RESET);
 	  		 }
-	  //		  while(showNextLine != true);
-	  //		  showNextLine = false;
-	  		  //HAL_Delay(50);
 	  	  }
 	  	  HAL_GPIO_WritePin(R_Reset_GPIO_Port, R_Reset_Pin, GPIO_PIN_SET);
 	  	  HAL_GPIO_WritePin(R_Reset_GPIO_Port, R_Reset_Pin, GPIO_PIN_RESET);
@@ -229,26 +233,22 @@ void i2cTask_App(void *argument)
   /* Infinite loop */
   for(;;)
   {
-//	  if(HAL_I2C_EnableListen_IT(&hi2c1) != HAL_OK){
-//		  Error_Handler();
-//	  }
-//	  osEventFlagsWait(i2cAddressedHandle, 0x00000001U,osFlagsWaitAny ,osWaitForever);
-	  HAL_I2C_Slave_Receive_IT(&hi2c1, (uint8_t *)rxdata, 8);
-	  osDelay(100);
-	 // osEventFlagsWait(dataReceivedHandle, 0x00000001U,osFlagsWaitAny ,osWaitForever);
-	  osMessageQueuePut(i2cMessageQueueHandle, (uint8_t *)rxdata, 0U, 0U);
+	  if(rxDone == 3){
+		  HAL_I2C_Slave_Receive_IT(&hi2c1, (uint8_t *)rxdata, 8);
+	  }else if(rxDone == 1){
+		  rxDone = 0;
+		  osMessageQueuePut(i2cMessageQueueHandle, (uint8_t *)rxdata, 0U, 0U);
+		  HAL_I2C_Slave_Receive_IT(&hi2c1, (uint8_t *)rxdata, 8);
+	  }
   }
   /* USER CODE END i2cTask_App */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c){
-	osEventFlagsSet(i2cAddressedHandle, 0x00000001U);
-}
 
 void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c){
-	 osEventFlagsSet(dataReceivedHandle, 0x00000001U);
+	 rxDone = 1;
 }
 /* USER CODE END Application */
 
