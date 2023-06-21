@@ -78,6 +78,11 @@ osEventFlagsId_t dataReceivedHandle;
 const osEventFlagsAttr_t dataReceived_attributes = {
   .name = "dataReceived"
 };
+/* Definitions for i2cAddressed */
+osEventFlagsId_t i2cAddressedHandle;
+const osEventFlagsAttr_t i2cAddressed_attributes = {
+  .name = "i2cAddressed"
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -137,6 +142,9 @@ void MX_FREERTOS_Init(void) {
   /* Create the event(s) */
   /* creation of dataReceived */
   dataReceivedHandle = osEventFlagsNew(&dataReceived_attributes);
+
+  /* creation of i2cAddressed */
+  i2cAddressedHandle = osEventFlagsNew(&i2cAddressed_attributes);
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
@@ -216,22 +224,31 @@ void displayTask_App(void *argument)
 void i2cTask_App(void *argument)
 {
   /* USER CODE BEGIN i2cTask_App */
-	uint8_t rxdata = 0;
+	uint8_t rxdata [] = {0};
 	extern I2C_HandleTypeDef hi2c1;
   /* Infinite loop */
   for(;;)
   {
-	  HAL_I2C_Slave_Receive_IT(&hi2c1, rxdata, 1);
-	  osThreadSuspend(i2cTaskHandle);
-	  osMessageQueuePut(i2cMessageQueueHandle, &rxdata, 0U, 0U);
+//	  if(HAL_I2C_EnableListen_IT(&hi2c1) != HAL_OK){
+//		  Error_Handler();
+//	  }
+//	  osEventFlagsWait(i2cAddressedHandle, 0x00000001U,osFlagsWaitAny ,osWaitForever);
+	  HAL_I2C_Slave_Receive_IT(&hi2c1, (uint8_t *)rxdata, 8);
+	  osDelay(100);
+	 // osEventFlagsWait(dataReceivedHandle, 0x00000001U,osFlagsWaitAny ,osWaitForever);
+	  osMessageQueuePut(i2cMessageQueueHandle, (uint8_t *)rxdata, 0U, 0U);
   }
   /* USER CODE END i2cTask_App */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
+void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c){
+	osEventFlagsSet(i2cAddressedHandle, 0x00000001U);
+}
+
 void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c){
-	 osThreadResume(i2cTaskHandle);
+	 osEventFlagsSet(dataReceivedHandle, 0x00000001U);
 }
 /* USER CODE END Application */
 
