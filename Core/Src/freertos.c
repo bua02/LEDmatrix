@@ -235,10 +235,13 @@ void i2cTask_App(void *argument)
   {
 	  if(rxDone == 3){
 		  HAL_I2C_Slave_Receive_IT(&hi2c1, (uint8_t *)rxdata, 8);
+		  osThreadYield();
 	  }else if(rxDone == 1){
 		  rxDone = 0;
 		  osMessageQueuePut(i2cMessageQueueHandle, (uint8_t *)rxdata, 0U, 0U);
+		  osDelay(1000);
 		  HAL_I2C_Slave_Receive_IT(&hi2c1, (uint8_t *)rxdata, 8);
+
 	  }
   }
   /* USER CODE END i2cTask_App */
@@ -249,6 +252,7 @@ void i2cTask_App(void *argument)
 
 void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c){
 	 rxDone = 1;
+	 osThreadResume(i2cTaskHandle);
 }
 /* USER CODE END Application */
 
