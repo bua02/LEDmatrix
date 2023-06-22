@@ -21,7 +21,6 @@
 #include "cmsis_os.h"
 #include "i2c.h"
 #include "spi.h"
-#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -48,7 +47,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-_Bool showNextLine = false;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,10 +92,9 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_SPI3_Init();
-  MX_TIM6_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start_IT(&htim6);
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -109,9 +107,6 @@ int main(void)
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
-  uint8_t spi_txbuf = 0x55;
-
   while (1)
   {
     /* USER CODE END WHILE */
@@ -182,6 +177,13 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+/**
+ * @brief Splits numbers into single digits and returns the outcome in a struct
+ *
+ * @param number - uint8_t number that should be split into digits
+ * @return singleDigits - Numbers
+ */
 Numbers getSingleDigits(uint8_t number){
 	Numbers singleDigits;
 	singleDigits.ones = number % 10;
@@ -206,9 +208,7 @@ Numbers getSingleDigits(uint8_t number){
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* USER CODE BEGIN Callback 0 */
-	if(htim == &htim6){
-		showNextLine = true;
-	}
+
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM16) {
     HAL_IncTick();

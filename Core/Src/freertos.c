@@ -155,7 +155,7 @@ void MX_FREERTOS_Init(void) {
 
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
-  * @brief  Function implementing the defaultTask thread.
+  * @brief  Task Yields and is unneeded
   * @param  argument: Not used
   * @retval None
   */
@@ -166,14 +166,14 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    osDelay(osWaitForever);
   }
   /* USER CODE END StartDefaultTask */
 }
 
 /* USER CODE BEGIN Header_displayTask_App */
 /**
-* @brief Function implementing the displayTask thread.
+* @brief display Task, as the name suggests, displays the numbers from the message queue onto the display. This Task runs in a loop to keep the Refresh Rate as High as possible
 * @param argument: Not used
 * @retval None
 */
@@ -190,29 +190,29 @@ void displayTask_App(void *argument)
 	  result = osMessageQueueGet(i2cMessageQueueHandle, &pulse, 0U, 0U);
 	  if(result == osOK){
 		  singleDigits = getSingleDigits(pulse);
-	  }else if(pulse == 0){
-		  singleDigits.tens = 87 - '0';
+	  }else if(pulse == 0){ ///Displays starting message
+		  singleDigits.tens = 87 - '0'; /// Letter W
 		  singleDigits.ones = 8;
 	  }
 
-	  for(int i = 0; i<=7; i++){
-	  		  if(i==0){
+	  for(int i = 0; i<=7; i++){ ///iterates through all the rows
+	  		  if(i==0){ ///reset everything to write in the top row and empty registers
 	  			  HAL_GPIO_WritePin(Reset_GPIO_Port, Reset_Pin, GPIO_PIN_RESET);
 	  			  HAL_GPIO_WritePin(Reset_GPIO_Port, Reset_Pin, GPIO_PIN_SET);
 	  		  }
 
 	  		  while(HAL_SPI_GetState(&hspi3)!=HAL_SPI_STATE_READY);
-	  		  HAL_SPI_Transmit_IT(&hspi3, &c7x10r_font[(singleDigits.ones + '0')*8+i], 1);
+	  		  HAL_SPI_Transmit_IT(&hspi3, &c7x10r_font[(singleDigits.ones + '0')*8+i], 1); ///write code via SPI
 	  		  while(HAL_SPI_GetState(&hspi3)!=HAL_SPI_STATE_READY);
 	  		  HAL_SPI_Transmit_IT(&hspi3, &c7x10r_font[(singleDigits.tens + '0')*8+i], 1);
-	  		  HAL_GPIO_WritePin(Latch_GPIO_Port, Latch_Pin, SET);
+	  		  HAL_GPIO_WritePin(Latch_GPIO_Port, Latch_Pin, SET); ///Open Latch to copy Values into register storage
 	  		  HAL_GPIO_WritePin(Latch_GPIO_Port, Latch_Pin, RESET);
 	  		 if(i > 0){
-	  				HAL_GPIO_WritePin(RClock_GPIO_Port, RClock_Pin, GPIO_PIN_SET);
+	  				HAL_GPIO_WritePin(RClock_GPIO_Port, RClock_Pin, GPIO_PIN_SET); ///skip to next row
 	  				HAL_GPIO_WritePin(RClock_GPIO_Port, RClock_Pin, GPIO_PIN_RESET);
 	  		 }
 	  	  }
-	  	  HAL_GPIO_WritePin(R_Reset_GPIO_Port, R_Reset_Pin, GPIO_PIN_SET);
+	  	  HAL_GPIO_WritePin(R_Reset_GPIO_Port, R_Reset_Pin, GPIO_PIN_SET);///reset Row counter to write in the first row
 	  	  HAL_GPIO_WritePin(R_Reset_GPIO_Port, R_Reset_Pin, GPIO_PIN_RESET);
   }
   /* USER CODE END displayTask_App */
@@ -220,7 +220,7 @@ void displayTask_App(void *argument)
 
 /* USER CODE BEGIN Header_i2cTask_App */
 /**
-* @brief Function implementing the i2cTask thread.
+* @brief The i2cTask starts in a start state, receiving I2C as a slave. When a pulse is received, it puts the pulse into a Queue and sends the pulse to the display Task
 * @param argument: Not used
 * @retval None
 */
@@ -233,13 +233,13 @@ void i2cTask_App(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  if(rxDone == 3){
+	  if(rxDone == 3){ ///start state
 		  HAL_I2C_Slave_Receive_IT(&hi2c1, (uint8_t *)rxdata, 8);
-		  osThreadYield();
-	  }else if(rxDone == 1){
+		  osThreadYield(); ///yielding Task until something is received
+	  }else if(rxDone == 1){ ///if something is received
 		  rxDone = 0;
 		  osMessageQueuePut(i2cMessageQueueHandle, (uint8_t *)rxdata, 0U, 0U);
-		  osDelay(1000);
+		  osDelay(1000); ///to limit new input to every second
 		  HAL_I2C_Slave_Receive_IT(&hi2c1, (uint8_t *)rxdata, 8);
 
 	  }
